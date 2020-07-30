@@ -1,0 +1,25 @@
+{
+    "name": "pepsia/rolling-curl",
+    "description": "A non blocking multi thread cURL library",
+    "type": "library",
+    "keywords": ["multi", "curl", "parallel", "requests", "asynchronous", "http"],
+    "homepage": "https://github.com/PEPSIASAS/RollingCurl",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Pepsia",
+            "email": "remy.courteaud@pepsia.com",
+            "homepage": "https://pepsia.com"
+        }
+    ],
+    "require": {
+        "php": "^7.1.0",
+        "ext-curl": "*",
+        "lib-curl": "*"
+    },
+    "autoload": {
+        "psr-0": {
+            "RollingCurlService": "src"
+        }
+    }
+}
