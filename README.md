@@ -153,14 +153,14 @@ $urls = [
     'https://en.wikipedia.org/wiki/Earth'   => [CURLOPT_TIMEOUT => 5],
     'https://en.wikipedia.org/wiki/Saturn'  => [CURLOPT_TIMEOUT => 25],
     'https://en.wikipedia.org/wiki/Jupiter' => [CURLOPT_TIMEOUT => 10],
-    'https://en.wikipedia.org/wiki/Mars'      => [CURLOPT_TIMEOUT => 15]
+    'https://en.wikipedia.org/wiki/Mars'    => [CURLOPT_TIMEOUT => 15]
 ];
 
 $rollingCurl = new \RollingCurlService\RollingCurl();
 
 /*
-    If setOptions() optional "addToGlobalOptions" param is set to TRUE the cURL options for that single request will be 
-    added to the global options instead of replacing them.
+    If setOptions() optional "addToGlobalOptions" param is set to TRUE the cURL options 
+    for that single request will be added to the global options instead of replacing them.
 */
 foreach ($urls as $url => $options) {
     $request = new \RollingCurlService\RollingCurlRequest($url);
