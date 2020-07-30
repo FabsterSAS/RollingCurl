@@ -98,7 +98,7 @@ class RollingCurl
             $ch = curl_init();
             $options = $this->getRequestOptions($this->requests[$i]);
             // If result should be written to file
-            if ($path = $this->requests[$i]->getWriteFilePath()) {
+            if ($path = $this->requests[$i]->getFileToWrite()) {
                 $options[CURLOPT_FILE] = fopen($path, 'wb');
             }
             curl_setopt_array($ch, $options);
@@ -125,7 +125,7 @@ class RollingCurl
 
                     if (is_callable($callback)) { // Handler in callback
 
-                        if ($request->getWriteFilePath() == null) {
+                        if ($request->getFileToWrite() == null) {
                             $output = curl_multi_getcontent($transfer['handle']);
                             call_user_func($callback, $output, $info, $request);
 
@@ -142,7 +142,7 @@ class RollingCurl
                         //Add new url to rolling window
                         $options = $this->getRequestOptions($this->requests[$i]);
 
-                        if ($path = $this->requests[$i]->getWriteFilePath()) {
+                        if ($path = $this->requests[$i]->getFileToWrite()) {
                             $options[CURLOPT_FILE] = fopen($path, 'wb');
                         }
 
@@ -186,7 +186,7 @@ class RollingCurl
         $ch      = curl_init();
         $request = array_shift($this->requests);
         $options = $this->getRequestOptions($request);
-        if ($path = $request->getWriteFilePath()) {
+        if ($path = $request->getFileToWrite()) {
             $options[CURLOPT_FILE] = fopen($path, 'wb');
         }
         curl_setopt_array($ch, $options);
