@@ -10,7 +10,7 @@ class RollingCurlRequest
     private $options;
     private $attributes;
     private $addToGlobalOptions = false;
-    private $writeToFile;
+    private $fileToWrite;
 
     function __construct(string $url, Array $options = null, Array $attributes = null)
     {
@@ -47,11 +47,11 @@ class RollingCurlRequest
     }
 
     /**
-     * @param string $writeToFile
+     * @param string $fileToWrite
      */
-    public function setWriteToFile(string $writeToFile): void
+    public function setFileToWrite(string $fileToWrite): void
     {
-        $this->writeToFile = $writeToFile;
+        $this->fileToWrite = $fileToWrite;
     }
 
     public function getUrl(): string
@@ -74,9 +74,9 @@ class RollingCurlRequest
         return $this->addToGlobalOptions;
     }
 
-    public function getWriteToFile(): ?string
+    public function getFileToWrite(): ?string
     {
-        return $this->writeToFile;
+        return $this->fileToWrite;
     }
 
 

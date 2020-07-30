@@ -97,7 +97,7 @@ $rollingCurl = new \RollingCurlService\RollingCurl();
 foreach ($urls as $key => $url) {
     $request = new \RollingCurlService\RollingCurlRequest($url);
 
-    $request->setWriteToFile('/my/path/my_file.txt'); 
+    $request->setFileToWrite('/my/path/my_file.txt'); 
     // This also supports an FTP target: 'ftp://user:pass@host/my/path/my_video.mp4'
 
     $rollingCurl->addRequest($request);
