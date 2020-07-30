@@ -22,9 +22,9 @@ class RollingCurl
     /**
      * @param array $options
      */
-    public function setOptions(Array $options): void // Set global options
+    public function setOptions(Array $options, bool $addToDefaultOptions = false): void // Set global options
     {
-        $this->options = $options;
+        $this->options = $addToDefaultOptions ? $options + $this->options  : $options;
     }
 
     /**
