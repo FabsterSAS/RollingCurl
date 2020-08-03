@@ -12,13 +12,13 @@ class RollingCurlRequest
     private $addToGlobalOptions = false;
     private $fileToWrite;
 
-    function __construct(string $url, Array $options = null, Array $attributes = null)
+
+    public function __construct(string $url, Array $options = null, Array $attributes = null)
     {
         $this->url        = $url;
         $this->options    = $options;
         $this->attributes = $attributes;
     }
-
 
     /**
      * @param array $options
@@ -38,8 +38,9 @@ class RollingCurlRequest
         $this->attributes = $attributes;
     }
 
+
     /**
-     * @param $addOptions
+     * @param bool $addToGlobalOptions
      */
     public function setAddToGlobalOptions(bool $addToGlobalOptions): void
     {
@@ -69,6 +70,9 @@ class RollingCurlRequest
         return $this->attributes;
     }
 
+    /**
+     * @return bool
+     */
     public function getAddToGlobalOptions(): bool
     {
         return $this->addToGlobalOptions;

@@ -6,10 +6,11 @@ namespace RollingCurlService;
 
 class RollingCurl
 {
-    public $requests; // Array of RollingCurlRequests
-    public $requestMap; // Requests added to curl multi and ready to be handled
-    public $rollingWindow = 5; // Max number of parallel requests
-    public $options = [ // Base curl opts
+    private $requests; // Array of RollingCurlRequests
+    private $requestMap; // Requests added to curl multi and ready to be handled
+    private $rollingWindow = 5; // Max number of parallel requests
+    private $multiHandler;
+    private $options = [ // Base curl opts
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS      => 5,
@@ -24,7 +25,7 @@ class RollingCurl
      */
     public function setOptions(Array $options, bool $addToDefaultOptions = false): void // Set global options
     {
-        $this->options = $addToDefaultOptions ? $options + $this->options  : $options;
+        $this->options = $addToDefaultOptions ? $options + $this->options : $options;
     }
 
     /**
@@ -54,7 +55,7 @@ class RollingCurl
         if ($request->getAddToGlobalOptions()) {
             $options = $request->getOptions() ? $request->getOptions() + $this->options : $this->options;
         } else {
-            $options = $request->getOptions() ? $request->getOptions() : $this->options;
+            $options = $request->getOptions() ?: $this->options;
         }
 
         $options[CURLOPT_URL] = $request->getUrl();
@@ -63,7 +64,7 @@ class RollingCurl
     }
 
 
-    public function clear() // Resets multicurl
+    public function clear(): void // Resets multicurl
     {
         $this->requests = [];
         $this->requestMap = [];
@@ -77,8 +78,11 @@ class RollingCurl
      */
     public function execute($callback = null)
     {
+        if ( ! $this->requests) {
+            return [];
+        }
         // rolling curl window must always be greater than 1
-        return count($this->requests) == 1 ? $this->singleCurl($callback) : $this->rollCurl($callback);
+        return count($this->requests) === 1 ? $this->singleCurl($callback) : $this->rollCurl($callback);
     }
 
     /**
@@ -86,34 +90,24 @@ class RollingCurl
      *
      * @return bool
      */
-    private function rollCurl($callback)
+    private function rollCurl($callback): bool
     {
-        $mh = curl_multi_init();
+        $this->multiHandler = curl_multi_init();
 
         // Smallest of the two values
         $window = min([$this->rollingWindow, count($this->requests)]);
 
         // start the first batch of requests
         for ($i = 0; $i < $window; $i++) {
-            $ch = curl_init();
-            $options = $this->getRequestOptions($this->requests[$i]);
-            // If result should be written to file
-            if ($path = $this->requests[$i]->getFileToWrite()) {
-                $options[CURLOPT_FILE] = fopen($path, 'wb');
-            }
-            curl_setopt_array($ch, $options);
-            curl_multi_add_handle($mh, $ch);
-
-            // Add to our request Maps
-            $this->requestMap[(string)$ch] = $i;
+            $this->initCurlRequest($i);
         }
 
         do {
-            $status = curl_multi_exec($mh, $running);
-            curl_multi_select($mh);
+            $status = curl_multi_exec($this->multiHandler, $running);
+            curl_multi_select($this->multiHandler);
 
             // a request was just completed -- find out which one
-            while ($transfer = curl_multi_info_read($mh)) {
+            while ($transfer = curl_multi_info_read($this->multiHandler)) {
 
                 $info = curl_getinfo($transfer['handle']);
                 $key = (string)$transfer['handle']; // Get current transfer handle
@@ -121,58 +115,61 @@ class RollingCurl
                 unset($this->requestMap[$key]);
 
                 // Handling OK result
-                if ($info['http_code'] == 200) {
+                if ($info['http_code'] === 200) {
 
                     if (is_callable($callback)) { // Handler in callback
-
-                        if ($request->getFileToWrite() == null) {
+                        if ($request->getFileToWrite() === null) {
                             $output = curl_multi_getcontent($transfer['handle']);
-                            call_user_func($callback, $output, $info, $request);
+                            $callback($output, $info, $request);
 
                         } else { // Result was written to file - no result to handle
                             $output = ['A file write path was provided => output was written to file'];
-                            call_user_func($callback, $output, $info, $request);
+                            $callback($output, $info, $request);
                         }
                     }
-
                     if (isset($this->requests[$i])) {
                         // start a new request (it's important to do this before removing the old one)
-                        $ch = curl_init();
-
-                        //Add new url to rolling window
-                        $options = $this->getRequestOptions($this->requests[$i]);
-
-                        if ($path = $this->requests[$i]->getFileToWrite()) {
-                            $options[CURLOPT_FILE] = fopen($path, 'wb');
-                        }
-
-                        curl_setopt_array($ch, $options);
-                        curl_multi_add_handle($mh, $ch);
-                        $this->requestMap[(string)$ch] = $i;
+                        $this->initCurlRequest($i);
                     }
-
                     // increment request index
                     $i++;
 
                 // Handling KO result
-                } elseif ($info['http_code'] != 200) {
+                } elseif ($info['http_code'] !== 200) {
 
                     if (is_callable($callback)) {
                         $output = curl_multi_getcontent($transfer['handle']);
-                        call_user_func($callback, $output, $info, $request);
+                        $callback($output, $info, $request);
                     }
                 }
-
                 // remove curl handle that just completed
-                curl_multi_remove_handle($mh, $transfer['handle']);
+                curl_multi_remove_handle($this->multiHandler, $transfer['handle']);
                 curl_close($transfer['handle']);
             }
 
-        } while ($running > 0 && $status == CURLM_OK);
+        } while ($running > 0 && $status === CURLM_OK);
 
-        curl_multi_close($mh);
+        curl_multi_close($this->multiHandler);
 
         return true;
+    }
+
+    /**
+     * @param int $RequestIndex
+     */
+    private function initCurlRequest(int $RequestIndex): void
+    {
+        $ch      = curl_init();
+        $options = $this->getRequestOptions($this->requests[$RequestIndex]);
+        // If result should be written to file
+        if ($path = $this->requests[$RequestIndex]->getFileToWrite()) {
+            $options[CURLOPT_FILE] = fopen($path, 'wb');
+        }
+        curl_setopt_array($ch, $options);
+        curl_multi_add_handle($this->multiHandler, $ch);
+
+        // Add to our request Maps
+        $this->requestMap[(string)$ch] = $RequestIndex;
     }
 
 
@@ -195,7 +192,7 @@ class RollingCurl
         // it's not neccesary to set a callback for one-off requests
         if ($callBack) {
             if (is_callable($callBack)) {
-                call_user_func($callBack, $output, $info, $request);
+                $callBack($output, $info, $request);
             }
         } else {
             return ['info' => $info, 'output' => $output];
