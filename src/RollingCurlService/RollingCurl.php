@@ -98,8 +98,8 @@ class RollingCurl
         $window = min([$this->rollingWindow, count($this->requests)]);
 
         // start the first batch of requests
-        for ($i = 0; $i < $window; $i++) {
-            $this->initCurlRequest($i);
+        for ($requestIndex = 0; $requestIndex < $window; $requestIndex++) {
+            $this->initCurlRequest($requestIndex);
         }
 
         do {
@@ -110,41 +110,32 @@ class RollingCurl
             while ($transfer = curl_multi_info_read($this->multiHandler)) {
 
                 $info = curl_getinfo($transfer['handle']);
-                $key = (string)$transfer['handle']; // Get current transfer handle
+                $key = (int)$transfer['handle']; // Get current transfer handle
                 $request = $this->requests[$this->requestMap[$key]];
                 unset($this->requestMap[$key]);
 
-                // Handling OK result
-                if ($info['http_code'] === 200) {
+                if (isset($this->requests[$requestIndex])) {
+                    // start a new request
+                    $this->initCurlRequest($requestIndex);
+                }
 
-                    if (is_callable($callback)) { // Handler in callback
-                        if ($request->getFileToWrite() === null) {
-                            $output = curl_multi_getcontent($transfer['handle']);
-                            $callback($output, $info, $request);
+                // remove curl handle that just completed
+                curl_multi_remove_handle($this->multiHandler, $transfer['handle']);
 
-                        } else { // Result was written to file - no result to handle
-                            $output = ['A file write path was provided => output was written to file'];
-                            $callback($output, $info, $request);
-                        }
-                    }
-                    if (isset($this->requests[$i])) {
-                        // start a new request (it's important to do this before removing the old one)
-                        $this->initCurlRequest($i);
-                    }
-                    // increment request index
-                    $i++;
-
-                // Handling KO result
-                } elseif ($info['http_code'] !== 200) {
-
-                    if (is_callable($callback)) {
+                if (is_callable($callback)) { // Handler in callback
+                    if ($request->getFileToWrite() === null) {
                         $output = curl_multi_getcontent($transfer['handle']);
+                        $callback($output, $info, $request);
+
+                    } else { // Result was written to file - no result to handle
+                        $output = ['A file write path was provided => output was written to file'];
                         $callback($output, $info, $request);
                     }
                 }
-                // remove curl handle that just completed
-                curl_multi_remove_handle($this->multiHandler, $transfer['handle']);
-                curl_close($transfer['handle']);
+                // increment request index
+                $requestIndex++;
+
+                $status = curl_multi_exec($this->multiHandler, $running);
             }
 
         } while ($running > 0 && $status === CURLM_OK);
@@ -161,7 +152,7 @@ class RollingCurl
     {
         $ch      = curl_init();
         $options = $this->getRequestOptions($this->requests[$RequestIndex]);
-        // If result should be written to file
+        // If file provided write result to file
         if ($path = $this->requests[$RequestIndex]->getFileToWrite()) {
             $options[CURLOPT_FILE] = fopen($path, 'wb');
         }
