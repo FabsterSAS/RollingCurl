@@ -160,7 +160,7 @@ class RollingCurl
         curl_multi_add_handle($this->multiHandler, $ch);
 
         // Add to our request Maps
-        $this->requestMap[(string)$ch] = $RequestIndex;
+        $this->requestMap[(int)$ch] = $RequestIndex;
     }
 
 
