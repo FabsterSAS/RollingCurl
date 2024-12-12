@@ -9,7 +9,7 @@ class RollingCurl
     /**
      * Array of RollingCurlRequests
      */
-    private array $requests;
+    private array $requests  = [];
 
     /**
      * Requests added to curl multi and ready to be handled
