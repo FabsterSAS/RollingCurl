@@ -6,14 +6,14 @@ namespace RollingCurlService;
 
 class RollingCurlRequest
 {
-    private $url;
-    private $options;
-    private $attributes;
-    private $addToGlobalOptions = false;
-    private $fileToWrite;
+    private string $url;
+    private ?array $options;
+    private ?array $attributes;
+    private bool $addToGlobalOptions = false;
+    private ?string $fileToWrite;
 
 
-    public function __construct(string $url, Array $options = null, Array $attributes = null)
+    public function __construct(string $url, ?Array $options = null, ?Array $attributes = null)
     {
         $this->url        = $url;
         $this->options    = $options;
@@ -21,16 +21,21 @@ class RollingCurlRequest
     }
 
     /**
+     * An array of cURL options, can replace or be added to global options.
+     *
      * @param array $options
      * @param bool $addToGlobalOptions
      */
     public function setOptions(array $options, bool $addToGlobalOptions = false): void
     {
         $this->options = $options;
-        $this->addToGlobalOptions = $addToGlobalOptions ? true : false;
+        $this->addToGlobalOptions = (bool)$addToGlobalOptions;
     }
 
     /**
+     * Attributes is an array of custom data accessible at any point, before requests are executed and in callback
+     * when a response has been received. Could contain e.g. an ID, an object...
+     *
      * @param array $attributes
      */
     public function setAttributes(array $attributes): void
@@ -40,6 +45,8 @@ class RollingCurlRequest
 
 
     /**
+     * Keep global cURL options but add options specific to a request.
+     *
      * @param bool $addToGlobalOptions
      */
     public function setAddToGlobalOptions(bool $addToGlobalOptions): void
@@ -48,6 +55,9 @@ class RollingCurlRequest
     }
 
     /**
+     * Write the request output to file.
+     * If a file path is provided the response will be written to file and not returned in the output.
+     *
      * @param string $fileToWrite
      */
     public function setFileToWrite(string $fileToWrite): void
@@ -82,7 +92,5 @@ class RollingCurlRequest
     {
         return $this->fileToWrite;
     }
-
-
 
 }

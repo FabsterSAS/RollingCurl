@@ -6,11 +6,28 @@ namespace RollingCurlService;
 
 class RollingCurl
 {
-    private $requests; // Array of RollingCurlRequests
-    private $requestMap; // Requests added to curl multi and ready to be handled
-    private $rollingWindow = 5; // Max number of parallel requests
+    /**
+     * Array of RollingCurlRequests
+     */
+    private array $requests;
+
+    /**
+     * Requests added to curl multi and ready to be handled
+     */
+    private array $requestMap;
+
+    /**
+     * Max number of parallel requests
+     *
+     * @var int
+     */
+    private int $rollingWindow = 5;
     private $multiHandler;
-    private $options = [ // Base curl opts
+
+    /**
+     * Global cURL options
+     */
+    private array $options = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_MAXREDIRS      => 5,
@@ -21,9 +38,10 @@ class RollingCurl
     ];
 
     /**
-     * @param array $options
+     * cURL requests may have custom options added to global options or replacing global options.
+     * e.g. CURLOPT_USERAGENT could be different on each request.
      */
-    public function setOptions(Array $options, bool $addToDefaultOptions = false): void // Set global options
+    public function setOptions(array $options, bool $addToDefaultOptions = false): void // Set global options
     {
         $this->options = $addToDefaultOptions ? $options + $this->options : $options;
     }
@@ -37,6 +55,14 @@ class RollingCurl
     }
 
     /**
+     * The rolling window is the number of requests to execute in parallel (defaults to 5).
+     * It's important to set the right rolling window, to low will be slow, to high may use up a lot of
+     * resources (RAM, CPU depending on complexity of treatment of requests).
+     * Be careful of the number of requests made to a single server...
+     * The right amount of requests to be executed in parallel has to be tested. 5 can be more than enough
+     * if requests treatments are light and responses are fast. A 100 or more parallel requests mays be needed
+     * if requests are very slow to respond or idling...
+     *
      * @param int $rollingWindow
      */
     public function setRollingWindow(int $rollingWindow): void
@@ -45,13 +71,14 @@ class RollingCurl
     }
 
     /**
+     * Merge request options with global options or replace options
+     *
      * @param RollingCurlRequest $request
      *
      * @return array
      */
     public function getRequestOptions(RollingCurlRequest $request): array
     {
-        // Merge request options with global options or replace options
         if ($request->getAddToGlobalOptions()) {
             $options = $request->getOptions() ? $request->getOptions() + $this->options : $this->options;
         } else {
@@ -64,21 +91,29 @@ class RollingCurl
     }
 
 
-    public function clear(): void // Resets multicurl
+    /**
+     * Clear multicurl request and requests pool
+     *
+     * @return void
+     */
+    public function clear(): void
     {
-        $this->requests = [];
-        $this->requestMap = [];
+        $this->requests      = [];
+        $this->requestMap    = [];
         $this->rollingWindow = 5;
     }
 
     /**
+     * Execute multicurl requests
+     * If a single request was added to pool a simple cURL request is created.
+     *
      * @param null $callback
      *
      * @return array|bool
      */
     public function execute($callback = null)
     {
-        if ( ! $this->requests) {
+        if (!$this->requests) {
             return [];
         }
         // rolling curl window must always be greater than 1
@@ -86,6 +121,12 @@ class RollingCurl
     }
 
     /**
+     * All requests in pool are executed by batch (window size).
+     * Requests in batch are executed in parallel.
+     * When one request in batch has finished it is replaced with the next request from the pool,
+     * so that n number (window size) of requests are always active in parallel.
+     * When a request has finished the result is sent to the callback (output maybe written to file if a file path was provided).
+     *
      * @param $callback
      *
      * @return bool
@@ -109,8 +150,8 @@ class RollingCurl
             // a request was just completed -- find out which one
             while ($transfer = curl_multi_info_read($this->multiHandler)) {
 
-                $info = curl_getinfo($transfer['handle']);
-                $key = (int)$transfer['handle']; // Get current transfer handle
+                $info    = curl_getinfo($transfer['handle']);
+                $key     = (int)$transfer['handle']; // Get current transfer handle
                 $request = $this->requests[$this->requestMap[$key]];
                 unset($this->requestMap[$key]);
 
@@ -146,6 +187,8 @@ class RollingCurl
     }
 
     /**
+     * All request are prepared for execution and pooled in the requestMap array.
+     *
      * @param int $RequestIndex
      */
     private function initCurlRequest(int $RequestIndex): void

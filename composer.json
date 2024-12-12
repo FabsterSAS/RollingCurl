@@ -7,13 +7,13 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Pepsia",
+            "name": "Fabster",
             "email": "remy.courteaud@pepsia.com",
-            "homepage": "https://pepsia.com"
+            "homepage": "https://fabster.com"
         }
     ],
     "require": {
-        "php": ">=7.1.0",
+        "php": ">=7.4",
         "ext-curl": "*",
         "lib-curl": "*"
     },
