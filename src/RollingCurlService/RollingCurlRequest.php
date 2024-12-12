@@ -10,7 +10,7 @@ class RollingCurlRequest
     private ?array $options;
     private ?array $attributes;
     private bool $addToGlobalOptions = false;
-    private ?string $fileToWrite;
+    private ?string $fileToWrite = null;
 
 
     public function __construct(string $url, ?Array $options = null, ?Array $attributes = null)
@@ -58,9 +58,9 @@ class RollingCurlRequest
      * Write the request output to file.
      * If a file path is provided the response will be written to file and not returned in the output.
      *
-     * @param string $fileToWrite
+     * @param string|null $fileToWrite
      */
-    public function setFileToWrite(string $fileToWrite): void
+    public function setFileToWrite(?string $fileToWrite): void
     {
         $this->fileToWrite = $fileToWrite;
     }
