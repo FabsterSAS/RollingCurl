@@ -22,20 +22,10 @@ Features of this implementation:
 
 ## Installation (via composer)
 
-[Get composer](http://getcomposer.org/doc/00-intro.md) and add this in your requires section of the composer.json:
+[Get composer](http://getcomposer.org/doc/00-intro.md) and run:
 
 ```
-{
-    "require": {
-        "pepsia/rolling-curl": "*"
-    }
-}
-```
-
-and then
-
-```
-composer install
+composer require pepsia/rolling-curl
 ```
 
 ## Usage
